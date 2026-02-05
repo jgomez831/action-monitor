@@ -1,18 +1,1 @@
-{
-  "updated": "2026-02-05T19:20:00Z",
-  "logs": [
-    { "time": "11:40", "agent": "Ion", "action": "Deployed Roman's Heat Check" },
-    { "time": "11:42", "agent": "StackCanvas", "action": "Polishing sandwich toggle" },
-    { "time": "11:45", "agent": "SandwichPilot", "action": "Monitoring Pages cache" }
-  ],
-  "agents": [
-    { "name": "Ion", "status": "LIVE" },
-    { "name": "StackCanvas", "status": "BUILD" },
-    { "name": "SandwichPilot", "status": "WATCH" }
-  ],
-  "projects": [
-    { "name": "Workstream Dashboard", "state": "ACTIVE" },
-    { "name": "Joe's Daily", "state": "STABLE" },
-    { "name": "Roman's Heat Check", "state": "LIVE" }
-  ]
-}
+{"logs":[],"agents":[],"projects":[]}
