@@ -130,25 +130,59 @@
     DATA REFRESH EVERY 5 SECONDS · SOURCE: actions.json
   </footer>
   <script>
+    const FALLBACK_URL = 'actions.json';
+    const GITHUB_EVENTS_URL = 'https://api.github.com/repos/jgomez831/workstream-dashboard/events';
     const logList = document.getElementById('log-list');
     const agentList = document.getElementById('agent-list');
     const projectGrid = document.getElementById('project-grid');
 
     async function fetchData() {
       try {
-        const res = await fetch('actions.json?_=' + Date.now());
-        if (!res.ok) throw new Error('Network response not ok');
-        const data = await res.json();
-        renderLogs(data.logs);
-        renderAgents(data.agents);
-        renderProjects(data.projects);
+        const [liveRes, fallbackRes] = await Promise.all([
+          fetch(GITHUB_EVENTS_URL, { headers: { 'Accept': 'application/vnd.github+json' } }),
+          fetch(`${FALLBACK_URL}?_=${Date.now()}`)
+        ]);
+
+        const fallbackData = fallbackRes.ok ? await fallbackRes.json() : {};
+        const liveEvents = liveRes.ok ? await liveRes.json() : [];
+        const liveLogs = mapEventsToLogs(liveEvents);
+
+        renderLogs(liveLogs.length ? liveLogs : fallbackData.logs);
+        renderAgents(liveLogs.length ? buildAgentList(liveLogs) : fallbackData.agents);
+        renderProjects(fallbackData.projects || []);
       } catch (err) {
         logList.innerHTML = `<li>Error loading log: ${err.message}</li>`;
       }
     }
 
+    function mapEventsToLogs(events = []) {
+      return (events || []).slice(0, 12).map(evt => {
+        const time = new Date(evt.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const agent = evt.actor && evt.actor.display_login ? evt.actor.display_login : 'unknown';
+        let action = evt.type;
+        if (evt.type === 'PushEvent') {
+          action = `pushed ${evt.payload.commits.length} commit(s)`;
+        } else if (evt.type === 'PullRequestEvent') {
+          action = `${evt.payload.action} PR #${evt.payload.number}`;
+        } else if (evt.type === 'WorkflowRunEvent') {
+          action = `${evt.payload.action} workflow ${evt.payload.workflow_run.name}`;
+        }
+        return { time, agent, action };
+      });
+    }
+
+    function buildAgentList(logs = []) {
+      const map = new Map();
+      logs.forEach(log => {
+        if (!map.has(log.agent)) {
+          map.set(log.agent, log.time);
+        }
+      });
+      return Array.from(map.entries()).map(([name, time]) => ({ name, status: `last seen ${time}` }));
+    }
+
     function renderLogs(logs = []) {
-      if (!logs.length) {
+      if (!logs || !logs.length) {
         logList.innerHTML = '<li>No activity yet.</li>';
         return;
       }
@@ -164,7 +198,7 @@
     }
 
     function renderAgents(agents = []) {
-      if (!agents.length) {
+      if (!agents || !agents.length) {
         agentList.innerHTML = '<li>No agents online.</li>';
         return;
       }
