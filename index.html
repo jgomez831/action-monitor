@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Action Monitor</title>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+    body {
+      margin: 0;
+      background: #030c03;
+      color: #6dff6d;
+      font-family: 'Share Tech Mono', 'VT323', 'IBM Plex Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 1.5rem;
+      border-bottom: 1px solid rgba(109,255,109,0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      font-size: 0.85rem;
+    }
+    main {
+      flex: 1;
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem;
+    }
+    .panel {
+      border: 1px solid rgba(109,255,109,0.35);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 0 15px rgba(0,255,0,0.08);
+      background: rgba(5,20,5,0.9);
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+    }
+    h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1rem;
+      letter-spacing: 0.1em;
+      color: #9dff9d;
+    }
+    .log-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      max-height: 280px;
+    }
+    .log-list li {
+      margin-bottom: 0.8rem;
+    }
+    .timestamp {
+      color: #00ffa6;
+      margin-right: 0.5rem;
+    }
+    .agent {
+      color: #fff568;
+    }
+    footer {
+      padding: 1rem 1.5rem;
+      border-top: 1px solid rgba(109,255,109,0.4);
+      font-size: 0.8rem;
+      letter-spacing: 0.15em;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00ffa6;
+      margin-right: 0.3rem;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+    .grid-two {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    .stat {
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+    }
+    .stat span {
+      display: block;
+      font-size: 1.5rem;
+      margin-top: 0.2rem;
+      color: #f7ff96;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="status-dot"></span>
+    ROMAN TERMINAL // LIVE ACTION RECORD
+  </header>
+  <main>
+    <section class="panel">
+      <h2>Live Log</h2>
+      <ul class="log-list" id="log-list">
+        <li>Loading latest activity...</li>
+      </ul>
+    </section>
+    <section class="panel">
+      <h2>Agents Online</h2>
+      <ul class="log-list" id="agent-list">
+        <li>Checking roster...</li>
+      </ul>
+    </section>
+    <section class="panel">
+      <h2>Active Projects</h2>
+      <div class="grid-two" id="project-grid">
+        <p>Loading...</p>
+      </div>
+    </section>
+  </main>
+  <footer>
+    DATA REFRESH EVERY 5 SECONDS · SOURCE: actions.json
+  </footer>
+  <script>
+    const logList = document.getElementById('log-list');
+    const agentList = document.getElementById('agent-list');
+    const projectGrid = document.getElementById('project-grid');
+
+    async function fetchData() {
+      try {
+        const res = await fetch('actions.json?_=' + Date.now());
+        if (!res.ok) throw new Error('Network response not ok');
+        const data = await res.json();
+        renderLogs(data.logs);
+        renderAgents(data.agents);
+        renderProjects(data.projects);
+      } catch (err) {
+        logList.innerHTML = `<li>Error loading log: ${err.message}</li>`;
+      }
+    }
+
+    function renderLogs(logs = []) {
+      if (!logs.length) {
+        logList.innerHTML = '<li>No activity yet.</li>';
+        return;
+      }
+      logList.innerHTML = logs
+        .map(log => `
+          <li>
+            <span class="timestamp">${log.time}</span>
+            <span class="agent">${log.agent}</span>
+            <span class="action">${log.action}</span>
+          </li>
+        `)
+        .join('');
+    }
+
+    function renderAgents(agents = []) {
+      if (!agents.length) {
+        agentList.innerHTML = '<li>No agents online.</li>';
+        return;
+      }
+      agentList.innerHTML = agents
+        .map(agent => `
+          <li>
+            <span class="agent">${agent.name}</span> — ${agent.status}
+          </li>
+        `)
+        .join('');
+    }
+
+    function renderProjects(projects = []) {
+      if (!projects.length) {
+        projectGrid.innerHTML = '<p>No active projects.</p>';
+        return;
+      }
+      projectGrid.innerHTML = projects
+        .map(project => `
+          <div class="stat">
+            ${project.name}
+            <span>${project.state}</span>
+          </div>
+        `)
+        .join('');
+    }
+
+    fetchData();
+    setInterval(fetchData, 5000);
+  </script>
+</body>
+</html>
